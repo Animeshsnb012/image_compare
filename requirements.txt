@@ -1,11 +1,13 @@
-Flask==3.1.0
+
 opencv-python==4.11.0.86
-numpy==1.26.4
 pandas==2.2.3
 scikit-image==0.25.2
 ImageHash==4.3.1
 Pillow==11.2.1
-torch==2.2.2
 torchvision==0.17.2
 scikit-learn==1.4.2
 gunicorn==23.0.0
+flask==2.1.1  # Update to the latest version of Flask you’re using
+numpy==1.23.5  # Ensure NumPy version compatibility
+torch==1.13.1  # Or the version you're using for PyTorch
+
