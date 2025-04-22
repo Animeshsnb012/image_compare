@@ -1,6 +1,6 @@
 Flask==3.1.0
 opencv-python==4.11.0.86
-numpy==2.2.5
+numpy==1.26.4
 pandas==2.2.3
 scikit-image==0.25.2
 ImageHash==4.3.1
