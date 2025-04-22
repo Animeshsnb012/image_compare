@@ -13,6 +13,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 from werkzeug.utils import secure_filename
 from datetime import datetime
 
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 RESULT_FOLDER = 'results'
