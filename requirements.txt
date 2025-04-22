@@ -3,3 +3,4 @@ pillow
 scikit-image
 opencv-python
 gunicorn
+pandas
