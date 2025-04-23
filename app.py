@@ -13,10 +13,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from werkzeug.utils import secure_filename
 from datetime import datetime
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 RESULT_FOLDER = 'results'
@@ -72,7 +68,6 @@ def compare_images(file1, file2):
     result["Resolution 1"] = f"{w1}x{h1}"
     result["Resolution 2"] = f"{w2}x{h2}"
 
-    # Resize second image to match first for comparisons
     img2_resized = cv2.resize(img2, (w1, h1))
 
     gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
@@ -89,13 +84,11 @@ def compare_images(file1, file2):
     for key in hashes1:
         result[f"{key} Similar"] = hashes1[key] == hashes2[key]
 
-    # Deep feature comparison
     feat1 = get_deep_features(pil1)
     feat2 = get_deep_features(pil2)
     deep_sim = cosine_similarity([feat1], [feat2])[0][0]
     result["Deep Similarity"] = round(float(deep_sim), 4)
 
-    # Zoom detection
     zoom_ratio = round((w2 * h2) / (w1 * h1), 2)
     result["Zoom Ratio"] = zoom_ratio
     if zoom_ratio > 1.1:
@@ -105,7 +98,6 @@ def compare_images(file1, file2):
     else:
         result["Zoom Status"] = "No Zoom"
 
-    # Final Verdict
     if result["SSIM"] > 0.90 and result["Deep Similarity"] > 0.90:
         result["Verdict"] = "Similar"
     elif result["Zoom Status"] != "No Zoom" and result["Deep Similarity"] > 0.85:
@@ -140,5 +132,8 @@ def upload():
         return send_file(result_path, as_attachment=True)
     return render_template('index.html')
 
+# 🔥 THIS SHOULD BE AT THE BOTTOM AND ONLY ONCE
 if __name__ == '__main__':
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
