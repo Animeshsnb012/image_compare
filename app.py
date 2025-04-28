@@ -20,7 +20,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 # Load pretrained model (ResNet18)
-model = models.resnet18(pretrained=True)
+# model = models.resnet18(pretrained=True)
+model = models.resnet18(weights=None)
+
 model.eval()
 feature_extractor = torch.nn.Sequential(*list(model.children())[:-1])
 transform = transforms.Compose([
