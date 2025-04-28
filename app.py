@@ -129,8 +129,20 @@ def upload():
         df = pd.DataFrame(comparisons)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         result_path = os.path.join(RESULT_FOLDER, f'comparison_result_{timestamp}.xlsx')
+        
+        # Log the file path where the Excel file will be saved
+        print(f"Saving result to: {result_path}")
+        
         df.to_excel(result_path, index=False)
-        return send_file(result_path, as_attachment=True)
+        
+        if os.path.exists(result_path):
+            print(f"File successfully created at: {result_path}")
+        else:
+            print(f"Error: File not created.")
+        
+        # Return the file for download
+        return send_file(result_path, as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    
     return render_template('index.html')
 
 
