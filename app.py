@@ -14,14 +14,16 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 
 app = Flask(__name__)
+
 UPLOAD_FOLDER = 'uploads'
 RESULT_FOLDER = 'results'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(RESULT_FOLDER, exist_ok=True)
 
-# Load pretrained model (locally)
-model = models.resnet18()
-model.load_state_dict(torch.load('models/resnet18-f37072fd.pth', map_location=torch.device('cpu')))
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB limit
+
+# Load a lighter pretrained model (MobileNetV2 in this case)
+model = models.mobilenet_v2(pretrained=True)  # Lighter model
 model.eval()
 feature_extractor = torch.nn.Sequential(*list(model.children())[:-1])
 transform = transforms.Compose([
@@ -30,9 +32,22 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
+# Resize image function to reduce memory usage
+def resize_image(img, max_size=(800, 800)):
+    img.thumbnail(max_size, Image.ANTIALIAS)
+    return img
+
+# File size validation
+def allowed_file(file):
+    if file and file.content_length <= MAX_FILE_SIZE:
+        return True
+    return False
+
+# Function to calculate MSE
 def mse(img1, img2):
     return np.mean((img1.astype("float") - img2.astype("float")) ** 2)
 
+# Function to get image hashes
 def get_hashes(img):
     return {
         "aHash": str(imagehash.average_hash(img)),
@@ -40,12 +55,14 @@ def get_hashes(img):
         "pHash": str(imagehash.phash(img)),
     }
 
+# Function to extract deep features from the image using the model
 def get_deep_features(img):
     img = transform(img).unsqueeze(0)
     with torch.no_grad():
         features = feature_extractor(img)
     return features.view(-1).numpy()
 
+# Compare two images
 def compare_images(file1, file2):
     result = {
         "Image 1": file1,
@@ -79,6 +96,10 @@ def compare_images(file1, file2):
 
     pil1 = Image.open(path1).convert('RGB')
     pil2 = Image.open(path2).convert('RGB')
+
+    # Resize images before processing
+    pil1 = resize_image(pil1)
+    pil2 = resize_image(pil2)
 
     hashes1 = get_hashes(pil1)
     hashes2 = get_hashes(pil2)
@@ -114,37 +135,31 @@ def upload():
         files = request.files.getlist('files')
         filenames = []
         for file in files:
-            if file:
+            if allowed_file(file):
                 filename = secure_filename(file.filename)
                 save_path = os.path.join(UPLOAD_FOLDER, filename)
                 file.save(save_path)
                 filenames.append(filename)
+            else:
+                result = {"Error": "File size too large. Maximum allowed size is 10MB."}
+                return render_template('index.html', result=result)
 
-        comparisons = []
+        # Create timestamped result file
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        result_path = os.path.join(RESULT_FOLDER, f'comparison_result_{timestamp}.xlsx')
+
+        # Process each image pair
         for i in range(len(filenames)):
             for j in range(i+1, len(filenames)):
                 result = compare_images(filenames[i], filenames[j])
-                comparisons.append(result)
+                df = pd.DataFrame([result])
 
-        df = pd.DataFrame(comparisons)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        result_path = os.path.join(RESULT_FOLDER, f'comparison_result_{timestamp}.xlsx')
-        
-        # Log the file path where the Excel file will be saved
-        print(f"Saving result to: {result_path}")
-        
-        df.to_excel(result_path, index=False)
-        
-        if os.path.exists(result_path):
-            print(f"File successfully created at: {result_path}")
-        else:
-            print(f"Error: File not created.")
-        
-        # Return the file for download
-        return send_file(result_path, as_attachment=True, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                # Write results directly to Excel
+                df.to_excel(result_path, index=False, header=False, mode='a')
+
+        return send_file(result_path, as_attachment=True)
     
     return render_template('index.html')
-
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
