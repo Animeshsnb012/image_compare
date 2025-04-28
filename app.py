@@ -19,10 +19,9 @@ RESULT_FOLDER = 'results'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(RESULT_FOLDER, exist_ok=True)
 
-# Load pretrained model (ResNet18)
-# model = models.resnet18(pretrained=True)
-model = models.resnet18(weights=None)
-
+# Load pretrained model (locally)
+model = models.resnet18()
+model.load_state_dict(torch.load('models/resnet18-f37072fd.pth', map_location=torch.device('cpu')))
 model.eval()
 feature_extractor = torch.nn.Sequential(*list(model.children())[:-1])
 transform = transforms.Compose([
@@ -134,8 +133,7 @@ def upload():
         return send_file(result_path, as_attachment=True)
     return render_template('index.html')
 
-# 🔥 THIS SHOULD BE AT THE BOTTOM AND ONLY ONCE
+
 if __name__ == '__main__':
-    import os
-    port = int(os.environ.get('PORT', 10000))
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
